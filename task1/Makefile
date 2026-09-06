@@ -62,20 +62,58 @@ ITERS ?= 10             # must match perf_harness's --iters -- see kDefaultIters
 $(BIN)/perf_harness: $(STUDENT_SRC) $(PERF_MAIN) | $(BIN)
 	$(CXX) $(PERF_CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
+# Comprehensive event list -- the perf "default" software/hardware set plus
+# every standard cache-hierarchy event (L1D/L1I, LLC, dTLB/iTLB, each split
+# into loads and stores where the CPU exposes it). Not every CPU/PMU supports
+# every one of these -- unsupported events show up as "<not supported>" or
+# "<not counted>" in the CSV rather than failing the whole run, so it's safe
+# to ask for all of them and see what your hardware actually reports.
+PERF_EVENTS := task-clock,context-switches,cpu-migrations,page-faults,cycles,ref-cycles,instructions,stalled-cycles-frontend,stalled-cycles-backend,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,L1-dcache-store-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,LLC-stores,LLC-store-misses,dTLB-loads,dTLB-load-misses,dTLB-stores,dTLB-store-misses,iTLB-loads,iTLB-load-misses
+
 # make perf-stat STAGE=tile ITERS=10
 # Raw counters from perf attach to the WHOLE process, which runs conv_$(STAGE)
-# ITERS times back-to-back (nothing else). Prints process totals, per-run
-# averages (totals / ITERS), and IPC (instructions per cycle) computed from
-# the instructions+cycles pair -- perf only auto-computes IPC in its
-# human-readable table, not in -x/CSV mode, so it's done here in awk instead.
+# ITERS times back-to-back (nothing else). Prints every counter perf reports
+# (total + per-run average), then derives IPC and MPKI for each load/store
+# cache level perf gave us data for.
 perf-stat: $(BIN)/perf_harness
-	@$(PERF) stat -e instructions,cycles,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses \
+	@$(PERF) stat -e $(PERF_EVENTS) \
 		-x, -o /tmp/perfstat_$(STAGE).csv \
 		-- ./$(BIN)/perf_harness $(STAGE) $(PH) $(PW) $(PK) $(PSEED) --iters=$(ITERS)
 	@echo "--- per-run average over $(ITERS) iterations (stage=$(STAGE)) ---"
-	@awk -F, -v n=$(ITERS) '{printf "%-28s total=%-14s avg/run=%.2f\n", $$3, $$1, $$1/n; if ($$3=="instructions") ins=$$1; if ($$3=="cycles") cyc=$$1} \
-		END{if (cyc>0) printf "%-28s %.3f\n", "IPC", ins/cyc}' \
-		/tmp/perfstat_$(STAGE).csv
+	@awk -F, -v n=$(ITERS) ' \
+		{ \
+			val=$$1; ev=$$3; gsub(/ /,"",ev); \
+			if (val !~ /^[0-9.]+$$/) { printf "%-28s %s\n", ev, "<not supported>"; next } \
+			printf "%-28s total=%-16s avg/run=%.2f\n", ev, val, val/n; \
+			counts[ev]=val; \
+		} \
+		END{ \
+			printf "\n--- derived metrics ---\n"; \
+			if (counts["cycles"]>0) \
+				printf "%-28s %.3f\n", "IPC (instr/cycle)", counts["instructions"]/counts["cycles"]; \
+			if (counts["instructions"]>0) { \
+				if ("L1-dcache-load-misses" in counts) \
+					printf "%-28s %.4f\n", "L1D-load MPKI",  counts["L1-dcache-load-misses"]/counts["instructions"]*1000; \
+				if ("L1-dcache-store-misses" in counts) \
+					printf "%-28s %.4f\n", "L1D-store MPKI", counts["L1-dcache-store-misses"]/counts["instructions"]*1000; \
+				if ("L1-icache-load-misses" in counts) \
+					printf "%-28s %.4f\n", "L1I-load MPKI",  counts["L1-icache-load-misses"]/counts["instructions"]*1000; \
+				if ("LLC-load-misses" in counts) \
+					printf "%-28s %.4f\n", "LLC-load MPKI",  counts["LLC-load-misses"]/counts["instructions"]*1000; \
+				if ("LLC-store-misses" in counts) \
+					printf "%-28s %.4f\n", "LLC-store MPKI", counts["LLC-store-misses"]/counts["instructions"]*1000; \
+				if ("dTLB-load-misses" in counts) \
+					printf "%-28s %.4f\n", "dTLB-load MPKI", counts["dTLB-load-misses"]/counts["instructions"]*1000; \
+				if ("dTLB-store-misses" in counts) \
+					printf "%-28s %.4f\n", "dTLB-store MPKI",counts["dTLB-store-misses"]/counts["instructions"]*1000; \
+				if ("iTLB-load-misses" in counts) \
+					printf "%-28s %.4f\n", "iTLB-load MPKI", counts["iTLB-load-misses"]/counts["instructions"]*1000; \
+			} \
+			if (("L1-dcache-loads" in counts) && ("L1-dcache-load-misses" in counts) && counts["L1-dcache-loads"]>0) \
+				printf "%-28s %.4f%%\n", "L1D-load miss rate", counts["L1-dcache-load-misses"]/counts["L1-dcache-loads"]*100; \
+			if (("LLC-loads" in counts) && ("LLC-load-misses" in counts) && counts["LLC-loads"]>0) \
+				printf "%-28s %.4f%%\n", "LLC-load miss rate", counts["LLC-load-misses"]/counts["LLC-loads"]*100; \
+		}' /tmp/perfstat_$(STAGE).csv
 
 # make mpki STAGE=tile ITERS=10
 # L1-D MPKI = (L1-dcache-load-misses / instructions) * 1000, computed from the
