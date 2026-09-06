@@ -1,44 +1,44 @@
-stage=tile H=2048 W=2048 K=3 seed=1234 iters=10  time(median)=411.808ms  GFLOP/s=0.18
+stage=tile H=2048 W=2048 K=3 seed=1234 iters=10  time(median)=408.066ms  GFLOP/s=0.19
 --- per-run average over 10 iterations (stage=tile) ---
                              <not supported>
                              <not supported>
-task-clock                   total=1196.90          avg/run=119.69
+task-clock                   total=1153.49          avg/run=115.35
 context-switches             total=50               avg/run=5.00
 cpu-migrations               total=1                avg/run=0.10
-page-faults                  total=12430            avg/run=1243.00
-cycles                       total=1024601933       avg/run=102460193.30
-ref-cycles                   total=2926081747       avg/run=292608174.70
-instructions                 total=3947390765       avg/run=394739076.50
+page-faults                  total=12431            avg/run=1243.10
+cycles                       total=1016410209       avg/run=101641020.90
+ref-cycles                   total=2820465370       avg/run=282046537.00
+instructions                 total=3813187746       avg/run=381318774.60
 stalled-cycles-frontend      <not supported>
 stalled-cycles-backend       <not supported>
-branches                     total=625494968        avg/run=62549496.80
-branch-misses                total=202583           avg/run=20258.30
-cache-references             total=16053985         avg/run=1605398.50
-cache-misses                 total=9462803          avg/run=946280.30
-L1-dcache-loads              total=790484196        avg/run=79048419.60
-L1-dcache-load-misses        total=10471000         avg/run=1047100.00
-L1-dcache-stores             total=66663198         avg/run=6666319.80
+branches                     total=601121596        avg/run=60112159.60
+branch-misses                total=186575           avg/run=18657.50
+cache-references             total=16889086         avg/run=1688908.60
+cache-misses                 total=9823062          avg/run=982306.20
+L1-dcache-loads              total=780175264        avg/run=78017526.40
+L1-dcache-load-misses        total=10814969         avg/run=1081496.90
+L1-dcache-stores             total=73642276         avg/run=7364227.60
 L1-dcache-store-misses       <not supported>
-L1-icache-load-misses        total=1462774          avg/run=146277.40
-LLC-loads                    total=270450           avg/run=27045.00
-LLC-load-misses              total=83789            avg/run=8378.90
-LLC-stores                   total=1308158          avg/run=130815.80
-LLC-store-misses             total=1042539          avg/run=104253.90
-dTLB-loads                   total=803643349        avg/run=80364334.90
-dTLB-load-misses             total=67980            avg/run=6798.00
-dTLB-stores                  total=79753516         avg/run=7975351.60
-dTLB-store-misses            total=129891           avg/run=12989.10
-iTLB-loads                   total=2663             avg/run=266.30
-iTLB-load-misses             total=5653             avg/run=565.30
+L1-icache-load-misses        total=1320088          avg/run=132008.80
+LLC-loads                    total=354903           avg/run=35490.30
+LLC-load-misses              total=88508            avg/run=8850.80
+LLC-stores                   total=1620317          avg/run=162031.70
+LLC-store-misses             total=1427273          avg/run=142727.30
+dTLB-loads                   total=824209257        avg/run=82420925.70
+dTLB-load-misses             total=65068            avg/run=6506.80
+dTLB-stores                  total=74624767         avg/run=7462476.70
+dTLB-store-misses            total=145699           avg/run=14569.90
+iTLB-loads                   total=1309             avg/run=130.90
+iTLB-load-misses             total=8242             avg/run=824.20
 
 --- derived metrics ---
-IPC (instr/cycle)            3.853
-L1D-load MPKI                2.6526
-L1I-load MPKI                0.3706
-LLC-load MPKI                0.0212
-LLC-store MPKI               0.2641
-dTLB-load MPKI               0.0172
-dTLB-store MPKI              0.0329
-iTLB-load MPKI               0.0014
-L1D-load miss rate           1.3246%
-LLC-load miss rate           30.9813%
+IPC (instr/cycle)            3.752
+L1D-load MPKI                2.8362
+L1I-load MPKI                0.3462
+LLC-load MPKI                0.0232
+LLC-store MPKI               0.3743
+dTLB-load MPKI               0.0171
+dTLB-store MPKI              0.0382
+iTLB-load MPKI               0.0022
+L1D-load miss rate           1.3862%
+LLC-load miss rate           24.9386%
