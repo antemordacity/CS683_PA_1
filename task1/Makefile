@@ -55,7 +55,7 @@ PERF  ?= perf
 STAGE ?= optimized     # naive | reorder | unroll | tile | simd | optimized
 PH    ?= 2048
 PW    ?= 2048
-PK    ?= 3
+PK    ?= 11
 PSEED ?= 1234
 ITERS ?= 10             # must match perf_harness's --iters -- see kDefaultIters
 
