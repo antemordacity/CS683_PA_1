@@ -11,7 +11,7 @@
 // it's a local dev tool for isolating perf numbers per stage.
 //
 // Usage:
-//   ./perf_harness <stage> [H W K] [seed] [--check]
+//   ./perf_harness <stage> [H W K] [seed] [--check] [--iters=N]
 //
 //   stage    : naive | reorder | unroll | tile | simd | optimized
 //   H W K    : workload size (default 2048 2048 3)
@@ -21,11 +21,20 @@
 //              attached -- it adds naive's own work to whatever gets
 //              measured, defeating the point of this harness. Run --check
 //              standalone first, then re-run without it under perf.
+//   --iters=N: how many times to call the stage function inside this one
+//              process (default 10). Hardware counters (instructions, L1D
+//              hits/misses, etc.) come from perf attaching to the whole
+//              process, not from anything this program can read itself --
+//              so "average perf stats over N runs" means running the stage
+//              N times in one process and dividing perf's totals by N. The
+//              harness prints iters=N in its output specifically so that
+//              division is easy to automate (see the Makefile's mpki/
+//              perf-stat targets, which do exactly this).
 //
 // Examples:
 //   ./perf_harness simd 2048 2048 3 --check        # verify correctness once
 //   perf stat -e instructions,L1-dcache-loads,L1-dcache-load-misses \
-//       ./perf_harness simd 2048 2048 3             # clean single-stage counters
+//       ./perf_harness simd 2048 2048 3             # 10 runs, raw (summed) counters
 //   perf record -g -o perf.data -- ./perf_harness tile 1024 1024 3
 //   perf report -i perf.data --stdio                # everything here IS conv_tile
 
@@ -37,9 +46,13 @@
 #include "timer.h"
 #include "utils.h"
 
-// Same warmup/reps convention as main.cpp, so timings are comparable.
-static constexpr int kWarmup = 2;
-static constexpr int kReps = 7;
+// Default number of in-process repetitions of the target stage. All of them
+// run back-to-back with no separate "warmup" phase: since perf counts the
+// whole process regardless, a warmup phase would just be uncounted-by-us but
+// still-counted-by-perf work, which defeats clean averaging. If you want
+// caches pre-warmed, just raise --iters and drop the first columns of your
+// own timing analysis; perf's totals will still divide cleanly by N.
+static constexpr int kDefaultIters = 10;
 
 struct Stage {
     const char* key;
@@ -60,11 +73,14 @@ static ConvFn find_stage(const char* key) {
 }
 
 static void usage(const char* prog) {
-    std::printf("Usage: %s <stage> [H W K] [seed] [--check]\n", prog);
+    std::printf("Usage: %s <stage> [H W K] [seed] [--check] [--iters=N]\n", prog);
     std::printf("  stage: naive | reorder | unroll | tile | simd | optimized\n");
     std::printf("  H W K default to 2048 2048 3; seed defaults to 1234.\n");
-    std::printf("  --check : also run conv_naive once and report max abs diff.\n");
-    std::printf("            Do NOT use --check while perf is attached.\n");
+    std::printf("  --check   : also run conv_naive once and report max abs diff.\n");
+    std::printf("              Do NOT use --check while perf is attached.\n");
+    std::printf("  --iters=N : run the stage N times in this one process\n");
+    std::printf("              (default %d). Divide perf's totals by N for\n", kDefaultIters);
+    std::printf("              per-run averages -- see Makefile's mpki target.\n");
 }
 
 int main(int argc, char** argv) {
@@ -84,20 +100,32 @@ int main(int argc, char** argv) {
     int H = 2048, W = 2048, K = 3;
     unsigned seed = 1234u;
     bool check = false;
+    int iters = kDefaultIters;
+
+    auto is_flag = [](const char* s) { return std::strncmp(s, "--", 2) == 0; };
 
     int pos = 2;
-    if (argc >= 5 && std::strcmp(argv[2], "--check") != 0) {
+    if (argc >= 5 && !is_flag(argv[2])) {
         H = std::atoi(argv[2]);
         W = std::atoi(argv[3]);
         K = std::atoi(argv[4]);
         pos = 5;
     }
-    if (argc > pos && std::strcmp(argv[pos], "--check") != 0) {
+    if (argc > pos && !is_flag(argv[pos])) {
         seed = static_cast<unsigned>(std::strtoul(argv[pos], nullptr, 10));
         ++pos;
     }
-    for (int i = pos; i < argc; ++i)
-        if (std::strcmp(argv[i], "--check") == 0) check = true;
+    for (int i = pos; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--check") == 0) {
+            check = true;
+        } else if (std::strncmp(argv[i], "--iters=", 8) == 0) {
+            iters = std::atoi(argv[i] + 8);
+        }
+    }
+    if (iters <= 0) {
+        std::printf("error: --iters must be positive.\n");
+        return 1;
+    }
 
     if (H <= 0 || W <= 0 || K <= 0) {
         std::printf("error: H, W, K must be positive.\n");
@@ -132,13 +160,16 @@ int main(int argc, char** argv) {
     }
 
     // ---- the ONLY thing that runs repeatedly / gets profiled: this stage ----
+    // No separate warmup phase: every one of the `iters` calls is counted by
+    // perf regardless of what we tell time_median_ms, so folding warmup in as
+    // just more iterations keeps "process total / iters" an honest average.
     auto run = [&]() { fn(in, out, ker, H, W, K); };
-    const double ms = pa1::time_median_ms(run, kWarmup, kReps);
+    const double ms = pa1::time_median_ms(run, /*warmup=*/0, /*reps=*/iters);
     const double flops = pa1::conv_flops(H, W, K);
     const double gflops = flops / (ms * 1e6);
 
-    std::printf("stage=%s H=%d W=%d K=%d seed=%u  time=%.3fms  GFLOP/s=%.2f\n",
-                argv[1], H, W, K, seed, ms, gflops);
+    std::printf("stage=%s H=%d W=%d K=%d seed=%u iters=%d  time(median)=%.3fms  GFLOP/s=%.2f\n",
+                argv[1], H, W, K, seed, iters, ms, gflops);
 
     pa1::free_floats(in);
     pa1::free_floats(img);

@@ -57,20 +57,30 @@ PH    ?= 2048
 PW    ?= 2048
 PK    ?= 3
 PSEED ?= 1234
+ITERS ?= 10             # must match perf_harness's --iters -- see kDefaultIters
 
 $(BIN)/perf_harness: $(STUDENT_SRC) $(PERF_MAIN) | $(BIN)
 	$(CXX) $(PERF_CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-# make perf-stat STAGE=tile   -- raw counters: instructions, L1D loads/misses,
-# LLC loads/misses -- for exactly conv_$(STAGE), nothing else.
+# make perf-stat STAGE=tile ITERS=10
+# Raw counters from perf attach to the WHOLE process, which runs conv_$(STAGE)
+# ITERS times back-to-back (nothing else). This prints both the process
+# totals (as perf reports them) and the per-run average (totals / ITERS).
 perf-stat: $(BIN)/perf_harness
-	$(PERF) stat -e instructions,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses \
-		./$(BIN)/perf_harness $(STAGE) $(PH) $(PW) $(PK) $(PSEED)
+	@$(PERF) stat -e instructions,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses \
+		-x, -o /tmp/perfstat_$(STAGE).csv \
+		-- ./$(BIN)/perf_harness $(STAGE) $(PH) $(PW) $(PK) $(PSEED) --iters=$(ITERS)
+	@echo "--- per-run average over $(ITERS) iterations (stage=$(STAGE)) ---"
+	@awk -F, -v n=$(ITERS) '{printf "%-28s total=%-14s avg/run=%.2f\n", $$3, $$1, $$1/n}' \
+		/tmp/perfstat_$(STAGE).csv
 
-# make mpki STAGE=tile   -- L1-D MPKI = (L1-dcache-load-misses / instructions) * 1000
+# make mpki STAGE=tile ITERS=10
+# L1-D MPKI = (L1-dcache-load-misses / instructions) * 1000, computed from the
+# process totals -- MPKI is already a ratio, so it doesn't need dividing by
+# ITERS separately, but per-run instruction/miss counts are also printed.
 mpki: $(BIN)/perf_harness
 	@$(PERF) stat -e instructions,L1-dcache-load-misses -x, -o /tmp/mpki_$(STAGE).csv \
-		-- ./$(BIN)/perf_harness $(STAGE) $(PH) $(PW) $(PK) $(PSEED) >/dev/null
-	@awk -F, '/instructions/{ins=$$1} /L1-dcache-load-misses/{miss=$$1} \
-		END{printf "stage=%s H=%s W=%s K=%s  instructions=%s  L1D-load-misses=%s  MPKI=%.4f\n", \
-		"$(STAGE)","$(PH)","$(PW)","$(PK)",ins,miss,(miss/ins)*1000}' /tmp/mpki_$(STAGE).csv
+		-- ./$(BIN)/perf_harness $(STAGE) $(PH) $(PW) $(PK) $(PSEED) --iters=$(ITERS) >/dev/null
+	@awk -F, -v n=$(ITERS) '/instructions/{ins=$$1} /L1-dcache-load-misses/{miss=$$1} \
+		END{printf "stage=%s H=%s W=%s K=%s iters=%d  instructions(total)=%s (avg/run=%.0f)  L1D-load-misses(total)=%s (avg/run=%.0f)  MPKI=%.4f\n", \
+		"$(STAGE)","$(PH)","$(PW)","$(PK)",n,ins,ins/n,miss,miss/n,(miss/ins)*1000}' /tmp/mpki_$(STAGE).csv
