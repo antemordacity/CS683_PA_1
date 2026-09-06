@@ -5,12 +5,6 @@
 #include "convolution.h"
 #include "timer.h"
 #include "utils.h"
-
-
-// ------------------------------------------------------------
-// Tiled convolution with configurable tile size
-// ------------------------------------------------------------
-
 void conv_tile_T(const float* in, float* out, const float* ker,
                  int H, int W, int K, int T) {
 
