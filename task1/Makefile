@@ -38,7 +38,7 @@ $(BIN)/conv_solution: $(SOLUTION_SRC) $(MAIN) | $(BIN)
 # ---- perf profiling ---------------------------------------------------------
 # Same pinned optimization flags as the graded build, plus -g and
 # -fno-omit-frame-pointer so `perf` can unwind stacks and attribute samples to
-# functions/lines. Neither flag changes codegen from the graded build.
+# functions/lines. Neither flag changes codegen vs. the graded build.
 PERF_CXXFLAGS := $(CXXFLAGS) -g -fno-omit-frame-pointer
 PERF  ?= perf
 STAGE ?= optimized     # which conv_* stage to profile: naive|reorder|unroll|tile|simd|optimized
@@ -50,19 +50,25 @@ PSEED ?= 1234
 $(BIN)/conv_perf: $(STUDENT_SRC) $(MAIN) | $(BIN)
 	$(CXX) $(PERF_CXXFLAGS) $^ -o $@ $(LDFLAGS)
 
-# make perf STAGE=simd
-# make perf STAGE=tile PH=512 PW=512 PK=5
-# Uses the harness's single-stage mode, so only naive + STAGE run under perf --
-# no overhead/noise from profiling all six stages in one shot.
-perf: $(BIN)/conv_perf
-	$(PERF) stat ./$(BIN)/conv_perf $(STAGE) $(PH) $(PW) $(PK) $(PSEED)
-
 # make perf-record STAGE=optimized
+# Uses the harness's single-stage mode (main.cpp, not ours to edit), so only
+# conv_naive + STAGE run -- no noise from profiling all six stages in one shot.
 perf-record: $(BIN)/conv_perf
 	$(PERF) record -g -o perf.data -- ./$(BIN)/conv_perf $(STAGE) $(PH) $(PW) $(PK) $(PSEED)
 
+# Filters the report to just the profiled stage's function, since the harness
+# always runs conv_naive alongside STAGE as its correctness/speedup baseline --
+# this keeps naive's samples out of your view. Use STAGE=naive to inspect it.
 perf-report:
-	$(PERF) report -i perf.data
+	$(PERF) report -i perf.data --symbol-filter=conv_$(STAGE)
+
+# NOTE: perf stat gives *process-wide* aggregate counters (cycles, IPC, cache
+# misses...), and the harness always runs conv_naive too as its baseline, so
+# these numbers are naive+STAGE combined, not STAGE alone. Use perf-record /
+# perf-report (which attribute per-function) for a clean per-stage view;
+# treat `make perf` as a rough process-level sanity check only.
+perf: $(BIN)/conv_perf
+	$(PERF) stat ./$(BIN)/conv_perf $(STAGE) $(PH) $(PW) $(PK) $(PSEED)
 
 $(BIN):
 	mkdir -p $(BIN)
