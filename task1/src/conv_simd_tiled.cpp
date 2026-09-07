@@ -3,7 +3,7 @@
 #include <immintrin.h>
 #include "convolution.h"
 
-void conv_simd_tile(const float* in, float* out, const float* ker,
+void conv_simd_tiled(const float* in, float* out, const float* ker,
                     int H, int W, int K) {
 
     const int p = K / 2;
