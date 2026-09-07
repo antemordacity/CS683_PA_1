@@ -1,5 +1,0 @@
-
-IT=10
-make perf-stat STAGE=naive ITERS=$IT > data_tile/naive.txt
-make perf-stat STAGE=tile ITERS=$IT > data_tile/tile.txt
- 
