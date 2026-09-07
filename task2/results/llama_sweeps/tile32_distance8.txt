@@ -1,0 +1,31 @@
+bash llama/run_demo.sh
+>>> llama.cpp matmul demo (tag b5731, 1 thread)
+>>> resetting llama.cpp to pristine
+>>> building STOCK llama-cli
+>>> injecting student matmul_optimized
+  patched ggml-cpu.c
+  patched CMakeLists.txt
+injection complete
+>>> building STUDENT llama-cli
+>>> downloading tiny model
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:05 --:--:--     0100    98  100    98    0     0     17      0  0:00:05  0:00:05 --:--:--    22
+100   976  100   976    0     0    167      0  0:00:05  0:00:05 --:--:--   167
+  0     0    0     0    0     0      0      0 --:--:--  0:00:06 --:--:--     0  9 1157k    9  113k    0     0  16407      0  0:01:12  0:00:07  0:01:05  112k 94 1157k   94 1092k    0     0   135k      0  0:00:08  0:00:08 --:--:--  540k100 1157k  100 1157k    0     0   142k      0  0:00:08  0:00:08 --:--:--  565k
+>>> running STOCK inference
+>>> running STUDENT inference
+
+================ RESULT ================
+[ok] student matmul_optimized was actually used by ggml
+[ok] student output matches stock output token-for-token (kernel is correct)
+
+--- timings (llama.cpp native) ---
+llama_perf_sampler_print:    sampling time =       0.55 ms /    69 runs   (    0.01 ms per token, 126373.63 tokens per second)
+llama_perf_context_print: prompt eval time =       0.32 ms /     5 tokens (    0.06 ms per token, 15576.32 tokens per second)
+llama_perf_context_print:        eval time =       6.61 ms /    63 runs   (    0.10 ms per token,  9526.69 tokens per second)
+--- timings (student kernel)  ---
+llama_perf_sampler_print:    sampling time =       0.67 ms /    69 runs   (    0.01 ms per token, 102678.57 tokens per second)
+llama_perf_context_print: prompt eval time =       0.38 ms /     5 tokens (    0.07 ms per token, 13333.33 tokens per second)
+llama_perf_context_print:        eval time =       8.41 ms /    63 runs   (    0.13 ms per token,  7487.52 tokens per second)
+=======================================

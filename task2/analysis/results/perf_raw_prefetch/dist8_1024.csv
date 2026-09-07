@@ -1,0 +1,10 @@
+# started on Mon Sep  7 06:07:36 2026
+
+32676494,,cpu_core/instructions/,275669311,62.00,,
+36806452,,cpu_core/cycles/,331071669,74.00,,
+7215669,,cpu_core/L1-dcache-loads/,332982888,75.00,,
+172822,,cpu_core/L1-dcache-load-misses/,333186491,75.00,2.40,of all L1-dcache accesses
+139071,,cpu_core/LLC-loads/,332267968,75.00,,
+1549,,cpu_core/LLC-load-misses/,332496196,75.00,1.11,of all LL-cache accesses
+2130153,,cpu_core/l2_request.all/,220025412,49.00,,
+1631872,,cpu_core/l2_request.miss/,219597020,49.00,,
