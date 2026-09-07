@@ -1,44 +1,84 @@
-#include <cstdio>
-#include <cstdlib>
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <random>
 #include <vector>
 
-#include "convolution.h"
-#include "timer.h"
-#include "utils.h"
-void conv_tile_T(const float* in, float* out, const float* ker,
-                 int H, int W, int K, int T) {
+using Clock = std::chrono::steady_clock;
+
+
+// ============================================================
+// Naive convolution
+// ============================================================
+
+void conv_naive(const float* in, float* out, const float* ker,
+                int H, int W, int K) {
 
     const int p = K / 2;
     const int in_stride = W + 2 * p;
 
-    // Initialize output
-    for (int i = 0; i < H * W; ++i)
-        out[i] = 0.0f;
+    for (int oy = 0; oy < H; ++oy) {
+        for (int ox = 0; ox < W; ++ox) {
 
-    // Output tiles
-    for (int oy0 = 0; oy0 < H; oy0 += T) {
-        for (int ox0 = 0; ox0 < W; ox0 += T) {
+            float acc = 0.0f;
 
-            // Kernel
             for (int ky = 0; ky < K; ++ky) {
                 for (int kx = 0; kx < K; ++kx) {
 
-                    const float kval = ker[ky * K + kx];
+                    acc +=
+                        in[(oy + ky) * in_stride + (ox + kx)]
+                        * ker[ky * K + kx];
+                }
+            }
 
-                    // Pixels inside tile
-                    for (int oy = oy0;
-                         oy < oy0 + T && oy < H;
-                         ++oy) {
+            out[oy * W + ox] = acc;
+        }
+    }
+}
 
-                        for (int ox = ox0;
-                             ox < ox0 + T && ox < W;
-                             ++ox) {
 
-                            out[oy * W + ox] +=
-                                in[(oy + ky) * in_stride + (ox + kx)]
-                                * kval;
+// ============================================================
+// Regular 2D tiled convolution
+// ============================================================
+
+void conv_tile(const float* in, float* out, const float* ker,
+               int H, int W, int K,
+               int TILE_H, int TILE_W) {
+
+    const int p = K / 2;
+    const int in_stride = W + 2 * p;
+
+    for (int oy0 = 0; oy0 < H; oy0 += TILE_H) {
+        for (int ox0 = 0; ox0 < W; ox0 += TILE_W) {
+
+            const int oy_end =
+                std::min(oy0 + TILE_H, H);
+
+            const int ox_end =
+                std::min(ox0 + TILE_W, W);
+
+            for (int oy = oy0; oy < oy_end; ++oy) {
+                for (int ox = ox0; ox < ox_end; ++ox) {
+
+                    float acc = 0.0f;
+
+                    for (int ky = 0; ky < K; ++ky) {
+
+                        const float* in_row =
+                            in + (oy + ky) * in_stride + ox;
+
+                        const float* ker_row =
+                            ker + ky * K;
+
+                        for (int kx = 0; kx < K; ++kx) {
+                            acc += in_row[kx] * ker_row[kx];
                         }
                     }
+
+                    out[oy * W + ox] = acc;
                 }
             }
         }
@@ -46,104 +86,291 @@ void conv_tile_T(const float* in, float* out, const float* ker,
 }
 
 
-int main() {
+// ============================================================
+// Benchmark helper
+// ============================================================
 
-    const int H = 2048;
-    const int W = 2048;
-    const int K = 32;
+template <typename Func>
+double benchmark(Func func, int runs) {
 
-    const int tile_sizes[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
-    const int num_tiles =
-        sizeof(tile_sizes) / sizeof(tile_sizes[0]);
+    std::vector<double> times;
+    times.reserve(runs);
 
-    const int warmup = 2;
-    const int reps = 7;
+    // Warmup
+    func();
 
-    // Allocate data
-    float* img = pa1::alloc_floats(
-        static_cast<std::size_t>(H) * W);
+    for (int i = 0; i < runs; ++i) {
 
-    float* ker = pa1::alloc_floats(
-        static_cast<std::size_t>(K) * K);
+        auto start = Clock::now();
 
-    float* out = pa1::alloc_floats(
-        static_cast<std::size_t>(H) * W);
+        func();
 
-    float* ref = pa1::alloc_floats(
-        static_cast<std::size_t>(H) * W);
+        auto end = Clock::now();
 
-    // Same random data every time
-    pa1::fill_random(
-        img,
-        static_cast<std::size_t>(H) * W,
-        1234u);
+        double elapsed =
+            std::chrono::duration<double, std::milli>(
+                end - start
+            ).count();
 
-    pa1::fill_random(
-        ker,
-        static_cast<std::size_t>(K) * K,
-        1235u);
-
-    float* in = pa1::make_padded(img, H, W, K);
-
-    // Reference result
-    conv_naive(in, ref, ker, H, W, K);
-
-    printf("H=%d W=%d K=%d\n\n", H, W, K);
-
-    printf("%-10s %-15s %-15s\n",
-           "Tile", "Time (ms)", "Speedup");
-
-    printf("------------------------------------------\n");
-
-    // First get naive timing
-    auto naive_run = [&]() {
-        conv_naive(in, out, ker, H, W, K);
-    };
-
-    double naive_ms =
-        pa1::time_median_ms(naive_run, warmup, reps);
-
-    printf("%-10s %-15.3f %-15.3f\n",
-           "naive",
-           naive_ms,
-           1.0);
-
-    // Test every tile size
-    for (int i = 0; i < num_tiles; ++i) {
-
-        const int T = tile_sizes[i];
-
-        auto tile_run = [&]() {
-            conv_tile_T(in, out, ker, H, W, K, T);
-        };
-
-        // Correctness check
-        tile_run();
-
-        float error =
-            pa1::max_abs_diff(out, ref, H, W);
-
-        if (error > 1e-3f) {
-            printf("T=%d INCORRECT error=%g\n",
-                   T, error);
-            continue;
-        }
-
-        double ms =
-            pa1::time_median_ms(tile_run, warmup, reps);
-
-        double speedup =
-            naive_ms / ms;
-
-        printf("%-10d %-15.3f %-15.3fx\n",
-               T, ms, speedup);
+        times.push_back(elapsed);
     }
 
-    pa1::free_floats(in);
-    pa1::free_floats(img);
-    pa1::free_floats(ker);
-    pa1::free_floats(out);
-    pa1::free_floats(ref);
+    // Median
+    std::sort(times.begin(), times.end());
+
+    return times[times.size() / 2];
+}
+
+
+// ============================================================
+// Main
+// ============================================================
+
+int main() {
+
+    // Matrix sizes to test
+    const std::vector<int> matrix_sizes = {
+        128,
+        256,
+        512,
+        1024,
+        2048
+    };
+
+    // Kernel sizes to test
+    const std::vector<int> kernel_sizes = {
+        3,
+        5,
+        11,
+        21,
+    };
+
+    // Tile sizes to test
+    const std::vector<int> tile_sizes = {
+        4,
+        8,
+        16,
+        32,
+        64,
+        128
+    };
+
+    // Number of timing repetitions
+    const int RUNS = 7;
+
+
+    // --------------------------------------------------------
+    // Random input
+    // --------------------------------------------------------
+
+    std::mt19937 rng(12345);
+
+    std::uniform_real_distribution<float> dist(
+        0.0f,
+        1.0f
+    );
+
+
+    // --------------------------------------------------------
+    // CSV file
+    // --------------------------------------------------------
+
+    std::ofstream csv("conv_results.csv");
+
+    if (!csv) {
+        std::cerr << "Could not open conv_results.csv\n";
+        return 1;
+    }
+
+    csv << "matrix_size,K,tile_size,"
+        << "naive_ms,tiled_ms,speedup,max_error\n";
+
+
+    // --------------------------------------------------------
+    // Header
+    // --------------------------------------------------------
+
+    std::cout
+        << "=============================================\n"
+        << "       CONVOLUTION TILING BENCHMARK\n"
+        << "=============================================\n\n";
+
+
+    // --------------------------------------------------------
+    // Run experiments
+    // --------------------------------------------------------
+
+    for (int N : matrix_sizes) {
+
+        int H = N;
+        int W = N;
+
+        std::cout
+            << "\nMatrix: "
+            << N << " x " << N
+            << "\n";
+
+
+        for (int K : kernel_sizes) {
+
+            int p = K / 2;
+
+            int padded_H = H + 2 * p;
+            int padded_W = W + 2 * p;
+
+            std::vector<float> in(
+                padded_H * padded_W
+            );
+
+            std::vector<float> ker(
+                K * K
+            );
+
+            std::vector<float> out_naive(
+                H * W
+            );
+
+            std::vector<float> out_tile(
+                H * W
+            );
+
+
+            // ------------------------------------------------
+            // Initialize
+            // ------------------------------------------------
+
+            for (float& x : in)
+                x = dist(rng);
+
+            for (float& x : ker)
+                x = dist(rng);
+
+
+            // ------------------------------------------------
+            // Benchmark naive
+            // ------------------------------------------------
+
+            double naive_ms = benchmark(
+                [&]() {
+                    conv_naive(
+                        in.data(),
+                        out_naive.data(),
+                        ker.data(),
+                        H,
+                        W,
+                        K
+                    );
+                },
+                RUNS
+            );
+
+
+            std::cout
+                << "\n  K = "
+                << K
+                << "   naive = "
+                << std::fixed
+                << std::setprecision(3)
+                << naive_ms
+                << " ms\n";
+
+
+            // ------------------------------------------------
+            // Test every tile size
+            // ------------------------------------------------
+
+            for (int TILE : tile_sizes) {
+
+                double tiled_ms = benchmark(
+                    [&]() {
+                        conv_tile(
+                            in.data(),
+                            out_tile.data(),
+                            ker.data(),
+                            H,
+                            W,
+                            K,
+                            TILE,
+                            TILE
+                        );
+                    },
+                    RUNS
+                );
+
+
+                // ------------------------------------------------
+                // Correctness
+                // ------------------------------------------------
+
+                float max_error = 0.0f;
+
+                for (size_t i = 0;
+                     i < out_naive.size();
+                     ++i) {
+
+                    max_error = std::max(
+                        max_error,
+                        std::abs(
+                            out_naive[i] - out_tile[i]
+                        )
+                    );
+                }
+
+
+                // ------------------------------------------------
+                // Speedup
+                // ------------------------------------------------
+
+                double speedup =
+                    naive_ms / tiled_ms;
+
+
+                // ------------------------------------------------
+                // Print
+                // ------------------------------------------------
+
+                std::cout
+                    << "    tile "
+                    << std::setw(3)
+                    << TILE
+                    << " : "
+                    << std::setw(10)
+                    << tiled_ms
+                    << " ms"
+                    << "   "
+                    << speedup
+                    << "x"
+                    << "   error = "
+                    << max_error
+                    << "\n";
+
+
+                // ------------------------------------------------
+                // CSV
+                // ------------------------------------------------
+
+                csv
+                    << N << ","
+                    << K << ","
+                    << TILE << ","
+                    << naive_ms << ","
+                    << tiled_ms << ","
+                    << speedup << ","
+                    << max_error
+                    << "\n";
+            }
+        }
+    }
+
+
+    csv.close();
+
+
+    std::cout
+        << "\n=============================================\n"
+        << "Benchmark complete.\n"
+        << "Results saved to: conv_results.csv\n"
+        << "=============================================\n";
 
     return 0;
 }
