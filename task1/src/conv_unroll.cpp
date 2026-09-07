@@ -1,33 +1,142 @@
-// conv_unroll.cpp  STAGE 2: LOOP UNROLLING
 #include "convolution.h"
-#include<iostream>
+
 void conv_unroll(const float* in, float* out, const float* ker,
                  int H, int W, int K) {
+
     const int p = K / 2;
-    const int in_stride = W + 2 * p;  
-    int kx = 0;
-    for (int oy = 0; oy < H; ++oy) {
-        for (int ox = 0; ox < W; ++ox) {
-            float acc0 = 0.0f, acc1 = 0.0f, acc2 = 0.0f, acc3 = 0.0f, acc4 = 0.0f, acc5 = 0.0f, acc6 = 0.0f, acc7 = 0.0f, acc8 = 0.0f, acc9 = 0.0f, acc10 = 0.0f;
-            for (int ky = 0; ky < K; ++ky) {
-                for (kx = 0; kx < K - 10; kx+=11) {
-                    acc0 += in[(oy + ky) * in_stride + (ox + kx)] * ker[ky * K + kx];
-                    acc1 += in[(oy + ky) * in_stride + (ox + kx + 1)] * ker[ky * K + kx + 1];
-                    acc2 += in[(oy + ky) * in_stride + (ox + kx + 2)] * ker[ky * K + kx + 2];
-                    acc3 += in[(oy + ky) * in_stride + (ox + kx + 3)] * ker[ky * K + kx + 3];
-                    acc4 += in[(oy + ky) * in_stride + (ox + kx + 4)] * ker[ky * K + kx + 4];
-                    acc5 += in[(oy + ky) * in_stride + (ox + kx + 5)] * ker[ky * K + kx + 5];
-                    acc6 += in[(oy + ky) * in_stride + (ox + kx + 6)] * ker[ky * K + kx + 6];
-                    acc7 += in[(oy + ky) * in_stride + (ox + kx + 7)] * ker[ky * K + kx + 7];
-                    acc8 += in[(oy + ky) * in_stride + (ox + kx + 8)] * ker[ky * K + kx + 8];
-                    acc9 += in[(oy + ky) * in_stride + (ox + kx + 9)] * ker[ky * K + kx + 9];
-                    acc10 += in[(oy + ky) * in_stride + (ox + kx + 10)] * ker[ky * K + kx + 10];
+    const int in_stride = W + 2 * p;
+
+    if (K <= 3) {
+
+        for (int oy = 0; oy < H; ++oy) {
+            for (int ox = 0; ox < W; ++ox) {
+
+                float acc0 = 0.0f;
+                float acc1 = 0.0f;
+                float acc2 = 0.0f;
+
+                for (int ky = 0; ky < K; ++ky) {
+                    const float* in_row =
+                        in + (oy + ky) * in_stride + ox;
+                    const float* ker_row =
+                        ker + ky * K;
+
+                    acc0 += in_row[0] * ker_row[0];
+                    acc1 += in_row[1] * ker_row[1];
+                    acc2 += in_row[2] * ker_row[2];
                 }
-                for(; kx < K; ++kx){
-                    acc0 += in[(oy + ky) * in_stride + (ox + kx)] * ker[ky * K + kx];
-                }
+
+                out[oy * W + ox] = acc0 + acc1 + acc2;
             }
-            out[oy * W + ox] = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8 + acc9 + acc10;
+        }
+
+    } else if (K <= 5) {
+
+        for (int oy = 0; oy < H; ++oy) {
+            for (int ox = 0; ox < W; ++ox) {
+
+                float acc0 = 0.0f;
+                float acc1 = 0.0f;
+                float acc2 = 0.0f;
+                float acc3 = 0.0f;
+                float acc4 = 0.0f;
+
+                for (int ky = 0; ky < K; ++ky) {
+                    const float* in_row =
+                        in + (oy + ky) * in_stride + ox;
+                    const float* ker_row =
+                        ker + ky * K;
+
+                    acc0 += in_row[0] * ker_row[0];
+                    acc1 += in_row[1] * ker_row[1];
+                    acc2 += in_row[2] * ker_row[2];
+                    acc3 += in_row[3] * ker_row[3];
+                    acc4 += in_row[4] * ker_row[4];
+                }
+
+                out[oy * W + ox] =
+                    acc0 + acc1 + acc2 + acc3 + acc4;
+            }
+        }
+
+    } else if (K <= 7) {
+
+        for (int oy = 0; oy < H; ++oy) {
+            for (int ox = 0; ox < W; ++ox) {
+
+                float acc0 = 0.0f;
+                float acc1 = 0.0f;
+                float acc2 = 0.0f;
+                float acc3 = 0.0f;
+                float acc4 = 0.0f;
+                float acc5 = 0.0f;
+                float acc6 = 0.0f;
+
+                for (int ky = 0; ky < K; ++ky) {
+                    const float* in_row =
+                        in + (oy + ky) * in_stride + ox;
+                    const float* ker_row =
+                        ker + ky * K;
+
+                    acc0 += in_row[0] * ker_row[0];
+                    acc1 += in_row[1] * ker_row[1];
+                    acc2 += in_row[2] * ker_row[2];
+                    acc3 += in_row[3] * ker_row[3];
+                    acc4 += in_row[4] * ker_row[4];
+                    acc5 += in_row[5] * ker_row[5];
+                    acc6 += in_row[6] * ker_row[6];
+                }
+
+                out[oy * W + ox] =
+                    acc0 + acc1 + acc2 + acc3 +
+                    acc4 + acc5 + acc6;
+            }
+        }
+
+    } else {
+
+        for (int oy = 0; oy < H; ++oy) {
+            for (int ox = 0; ox < W; ++ox) {
+
+                float acc0 = 0.0f;
+                float acc1 = 0.0f;
+                float acc2 = 0.0f;
+                float acc3 = 0.0f;
+                float acc4 = 0.0f;
+                float acc5 = 0.0f;
+                float acc6 = 0.0f;
+                float acc7 = 0.0f;
+                float acc8 = 0.0f;
+
+                for (int ky = 0; ky < K; ++ky) {
+                    const float* in_row =
+                        in + (oy + ky) * in_stride + ox;
+                    const float* ker_row =
+                        ker + ky * K;
+
+                    int kx = 0;
+
+                    for (; kx + 8 < K; kx += 9) {
+                        acc0 += in_row[kx]     * ker_row[kx];
+                        acc1 += in_row[kx + 1] * ker_row[kx + 1];
+                        acc2 += in_row[kx + 2] * ker_row[kx + 2];
+                        acc3 += in_row[kx + 3] * ker_row[kx + 3];
+                        acc4 += in_row[kx + 4] * ker_row[kx + 4];
+                        acc5 += in_row[kx + 5] * ker_row[kx + 5];
+                        acc6 += in_row[kx + 6] * ker_row[kx + 6];
+                        acc7 += in_row[kx + 7] * ker_row[kx + 7];
+                        acc8 += in_row[kx + 8] * ker_row[kx + 8];
+                    }
+
+                    for (; kx < K; ++kx) {
+                        acc0 += in_row[kx] * ker_row[kx];
+                    }
+                }
+
+                out[oy * W + ox] =
+                    acc0 + acc1 + acc2 + acc3 +
+                    acc4 + acc5 + acc6 + acc7 + acc8;
+            }
         }
     }
 }
