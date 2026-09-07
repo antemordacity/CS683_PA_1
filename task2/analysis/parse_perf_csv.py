@@ -28,26 +28,47 @@ EVENT_MAP = {
     "l1d_misses": "L1-dcache-load-misses",
     "llc_loads": "LLC-loads",
     "llc_misses": "LLC-load-misses",
-    "l2_refs": "l2_rqsts.references",
-    "l2_misses": "l2_rqsts.miss",
+    "l2_refs": "l2_request.all",
+    "l2_misses": "l2_request.miss",
 }
 
 
 def parse_one(path):
     vals = {}
+
     with open(path) as f:
         for line in f:
             line = line.rstrip("\n")
+
             if not line or line.startswith("#"):
                 continue
+
             parts = line.split(",")
+
             if len(parts) < 3:
                 continue
-            raw_val, event = parts[0], parts[2]
+
+            raw_val = parts[0]
+            event = parts[2]
+
+            # Ignore unsupported events.
             try:
-                vals[event] = float(raw_val)
+                value = float(raw_val)
             except ValueError:
-                pass  # e.g. "<not counted>" / "<not supported>"
+                continue
+
+            # perf on hybrid CPUs reports events as:
+            # cpu_core/instructions/
+            # cpu_atom/instructions/
+            #
+            # Strip the PMU prefix and trailing slash.
+            if "/" in event:
+                event = event.split("/", 1)[1]
+
+            event = event.rstrip("/")
+
+            vals[event] = vals.get(event, 0.0) + value
+
     return vals
 
 

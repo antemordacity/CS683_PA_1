@@ -24,14 +24,15 @@ SIZES=(${1:-256 512 1024 2048})
 ITERS=${2:-5}
 STAGES=(naive simd prefetch optimized)
 
-EVENTS="instructions,cycles,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses"
-if perf list 2>/dev/null | grep -q "l2_rqsts.miss"; then
-    EVENTS="$EVENTS,l2_rqsts.miss,l2_rqsts.references"
-    echo "using raw event l2_rqsts.miss for L2 misses"
-else
-    echo "note: raw event 'l2_rqsts.miss' not available on this CPU/perf build;"
-    echo "      l2_misses/l2_refs will be blank in the aggregated CSV."
-fi
+# Pin to one logical CPU so a single-threaded run doesn't get bounced between
+# core types on a hybrid (P-core/E-core) chip mid-measurement. Override with
+# PIN_CPU=<n> if you want a specific P-core; check `lscpu -e` to see which
+# logical CPU numbers map to which core type on your machine.
+PIN_CPU=${PIN_CPU:-0}
+
+EVENTS="cpu_core/instructions/,cpu_core/cycles/,cpu_core/L1-dcache-loads/,cpu_core/L1-dcache-load-misses/,cpu_core/LLC-loads/,cpu_core/LLC-load-misses/,cpu_core/l2_request.all/,cpu_core/l2_request.miss/"
+
+echo "using cpu_core L2 events"
 
 g++ -std=c++17 -O2 -fno-tree-vectorize -mavx2 -mfma -I../include \
     bench_perf_workload.cpp matmul_prefetch_param.cpp \
@@ -42,7 +43,7 @@ g++ -std=c++17 -O2 -fno-tree-vectorize -mavx2 -mfma -I../include \
 for n in "${SIZES[@]}"; do
     for stage in "${STAGES[@]}"; do
         RAWFILE="results/perf_raw_size/${stage}_${n}.csv"
-        perf stat -x, -e "$EVENTS" -o "$RAWFILE" -- \
+        perf stat -x, -C "$PIN_CPU" -e "$EVENTS" -o "$RAWFILE" -- \
             /tmp/bench_perf "$stage" "$n" "$n" "$n" "$ITERS"
         echo "stage=$stage size=$n done"
     done

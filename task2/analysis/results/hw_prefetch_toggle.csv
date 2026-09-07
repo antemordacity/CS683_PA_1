@@ -1,0 +1,3 @@
+config,stage,M,N,K,iters,total_wall_ms,per_call_ms
+hw_prefetch_enabled,optimized,1024,1024,1024,5,356.48369789123535,71.29673957824707
+hw_prefetch_disabled,optimized,1024,1024,1024,5,373.43668937683105,74.68733787536621
