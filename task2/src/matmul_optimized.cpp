@@ -15,7 +15,7 @@ void matmul_optimized(const float* A, const float* B, float* C,
                       int M, int N, int K, int lda, int ldb, int ldc) {
 
     const int TILE = 32;
-    const int PREFETCH_DISTANCE = 8;
+    const int PREFETCH_DISTANCE = 32;
 
     // C must start from zero because K is processed in tiles.
     for (int i = 0; i < M; ++i) {
