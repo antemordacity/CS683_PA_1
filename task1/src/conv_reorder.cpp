@@ -10,17 +10,13 @@ void conv_reorder(const float* in, float* out, const float* ker,
 
     for (int i = 0; i < H * W; ++i)
         out[i] = 0.0f;
-
     for (int oy = 0; oy < H; ++oy) {
         for (int ky = 0; ky < K; ++ky) {
             for (int kx = 0; kx < K; ++kx) {
-
-                float kval = ker[ky * K + kx];
-
+                float k = ker[ky * K + kx];
                 for (int ox = 0; ox < W; ++ox) {
                     out[oy * W + ox] +=
-                        in[(oy + ky) * in_stride + (ox + kx)]
-                        * kval;
+                        in[(oy + ky) * in_stride + (ox + kx)] * k;
                 }
             }
         }
