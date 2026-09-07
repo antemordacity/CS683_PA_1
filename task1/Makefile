@@ -53,9 +53,9 @@ PERF_MAIN     := src/perf_harness.cpp
 PERF_CXXFLAGS := $(CXXFLAGS) -g -fno-omit-frame-pointer
 PERF  ?= perf
 STAGE ?= optimized     # naive | reorder | unroll | tile | simd | optimized
-PH    ?= 2048
-PW    ?= 2048
-PK    ?= 11
+PH    ?= 1024
+PW    ?= 1024
+PK    ?= 3
 PSEED ?= 1234
 ITERS ?= 10             # must match perf_harness's --iters -- see kDefaultIters
 
