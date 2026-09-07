@@ -5,4 +5,5 @@ make perf-stat STAGE=reorder ITERS=$IT > data/reorder.txt
 make perf-stat STAGE=unroll ITERS=$IT > data/unroll.txt
 make perf-stat STAGE=tile ITERS=$IT > data/tile.txt
 make perf-stat STAGE=simd ITERS=$IT > data/simd.txt
+make perf-stat STAGE=simd_tiled ITERS=$IT > data/simd_tiled.txt
 make perf-stat STAGE=optimized ITERS=$IT > data/optimized.txt
