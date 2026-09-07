@@ -66,7 +66,7 @@ STAGE ?= optimized
 PH    ?= 1024
 PW    ?= 1024
 PK    ?= 3
-PSEED ?= 1234
+SEED ?= 1234
 ITERS ?= 10
 
 $(BIN)/perf_harness: $(STUDENT_SRC) $(PERF_MAIN) | $(BIN)

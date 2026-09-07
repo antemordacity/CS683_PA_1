@@ -1,58 +1,44 @@
-stage=tile H=2048 W=2048 K=5 seed=1234 iters=10 time(median)=36.447ms GFLOP/s=5.75
+stage=tile H=2048 W=2048 K=5 seed=1234 iters=10 time(median)=802.305ms GFLOP/s=0.26
 --- per-run average over 10 iterations (stage=tile) ---
                              <not supported>
                              <not supported>
-task-clock                   total=400.44           avg/run=40.04
-context-switches             total=2                avg/run=0.20
-cpu-migrations               total=1                avg/run=0.10
-page-faults                  total=12428            avg/run=1242.80
-cpu_atom/cycles/             total=1428422421       avg/run=142842242.10
-cpu_core/cycles/             total=2015366258       avg/run=201536625.80
-cpu_atom/ref-cycles/         total=961045348        avg/run=96104534.80
-cpu_core/ref-cycles/         total=964696571        avg/run=96469657.10
-cpu_atom/instructions/       total=2375765459       avg/run=237576545.90
-cpu_core/instructions/       total=7775093624       avg/run=777509362.40
-cpu_atom/stalled-cycles-frontend/ <not supported>
-cpu_core/stalled-cycles-frontend/ <not supported>
-cpu_atom/stalled-cycles-backend/ <not supported>
-cpu_core/stalled-cycles-backend/ <not supported>
-cpu_atom/branches/           total=333122420        avg/run=33312242.00
-cpu_core/branches/           total=1398412315       avg/run=139841231.50
-cpu_atom/branch-misses/      total=22734671         avg/run=2273467.10
-cpu_core/branch-misses/      total=1967910          avg/run=196791.00
-cpu_atom/cache-references/   total=5405307          avg/run=540530.70
-cpu_core/cache-references/   total=8304948          avg/run=830494.80
-cpu_atom/cache-misses/       total=3398351          avg/run=339835.10
-cpu_core/cache-misses/       total=4320362          avg/run=432036.20
-cpu_atom/L1-dcache-loads/    total=279454953        avg/run=27945495.30
-cpu_core/L1-dcache-loads/    total=2170285123       avg/run=217028512.30
-cpu_atom/L1-dcache-load-misses/ <not supported>
-cpu_core/L1-dcache-load-misses/ total=1148735          avg/run=114873.50
-cpu_atom/L1-dcache-stores/   total=199403372        avg/run=19940337.20
-cpu_core/L1-dcache-stores/   total=72969543         avg/run=7296954.30
-cpu_atom/L1-dcache-store-misses/ <not supported>
-cpu_core/L1-dcache-store-misses/ <not supported>
-cpu_atom/L1-icache-load-misses/ total=426109           avg/run=42610.90
-cpu_core/L1-icache-load-misses/ total=541499           avg/run=54149.90
-cpu_atom/LLC-loads/          total=65915            avg/run=6591.50
-cpu_core/LLC-loads/          total=79730            avg/run=7973.00
-cpu_atom/LLC-load-misses/    total=0                avg/run=0.00
-cpu_core/LLC-load-misses/    total=30187            avg/run=3018.70
-cpu_atom/LLC-stores/         <not supported>
-cpu_core/LLC-stores/         total=636643           avg/run=63664.30
-cpu_atom/LLC-store-misses/   <not supported>
-cpu_core/LLC-store-misses/   total=420445           avg/run=42044.50
-cpu_atom/dTLB-loads/         <not supported>
-cpu_core/dTLB-loads/         total=2184344824       avg/run=218434482.40
-cpu_atom/dTLB-load-misses/   <not supported>
-cpu_core/dTLB-load-misses/   total=26794            avg/run=2679.40
-cpu_atom/dTLB-stores/        <not supported>
-cpu_core/dTLB-stores/        total=62466920         avg/run=6246692.00
-cpu_atom/dTLB-store-misses/  <not supported>
-cpu_core/dTLB-store-misses/  total=113152           avg/run=11315.20
-cpu_atom/iTLB-loads/         <not supported>
-cpu_core/iTLB-loads/         <not supported>
-cpu_atom/iTLB-load-misses/   <not supported>
-cpu_core/iTLB-load-misses/   total=13726            avg/run=1372.60
+task-clock                   total=2126.62          avg/run=212.66
+context-switches             total=108              avg/run=10.80
+cpu-migrations               total=2                avg/run=0.20
+page-faults                  total=12438            avg/run=1243.80
+cycles                       total=2949505472       avg/run=294950547.20
+ref-cycles                   total=5210566806       avg/run=521056680.60
+instructions                 total=8841797406       avg/run=884179740.60
+stalled-cycles-frontend      <not supported>
+stalled-cycles-backend       <not supported>
+branches                     total=1349392161       avg/run=134939216.10
+branch-misses                total=918748           avg/run=91874.80
+cache-references             total=30431556         avg/run=3043155.60
+cache-misses                 total=13589982         avg/run=1358998.20
+L1-dcache-loads              total=2158005677       avg/run=215800567.70
+L1-dcache-load-misses        total=11481557         avg/run=1148155.70
+L1-dcache-stores             total=77820934         avg/run=7782093.40
+L1-dcache-store-misses       <not supported>
+L1-icache-load-misses        total=2129438          avg/run=212943.80
+LLC-loads                    total=1264459          avg/run=126445.90
+LLC-load-misses              total=170278           avg/run=17027.80
+LLC-stores                   total=3427838          avg/run=342783.80
+LLC-store-misses             total=1814846          avg/run=181484.60
+dTLB-loads                   total=2231115376       avg/run=223111537.60
+dTLB-load-misses             total=86033            avg/run=8603.30
+dTLB-stores                  total=77172342         avg/run=7717234.20
+dTLB-store-misses            total=137730           avg/run=13773.00
+iTLB-loads                   total=6093             avg/run=609.30
+iTLB-load-misses             total=14218            avg/run=1421.80
 
 --- derived metrics ---
+IPC (instr/cycle)            2.998
+L1D-load MPKI                1.2986
+L1I-load MPKI                0.2408
+LLC-load MPKI                0.0193
+LLC-store MPKI               0.2053
+dTLB-load MPKI               0.0097
+dTLB-store MPKI              0.0156
+iTLB-load MPKI               0.0016
+L1D-load miss rate           0.5320%
+LLC-load miss rate           13.4665%

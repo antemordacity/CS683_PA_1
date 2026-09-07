@@ -9,7 +9,7 @@ void conv_simd_tiled(const float* in, float* out, const float* ker,
     const int p = K / 2;
     const int in_stride = W + 2 * p;
 
-    constexpr int TILE_H = 32;
+    constexpr int TILE_H = 64;
     constexpr int TILE_W = 64;
 
     for (int oy0 = 0; oy0 < H; oy0 += TILE_H) {
