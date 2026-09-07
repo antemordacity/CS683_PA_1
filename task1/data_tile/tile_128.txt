@@ -1,0 +1,45 @@
+g++ -std=c++17 -O2 -fno-tree-vectorize -mavx2 -mfma -Iinclude -Wall -g -fno-omit-frame-pointer src/conv_naive.cpp src/conv_reorder.cpp src/conv_unroll.cpp src/conv_tile.cpp src/conv_simd.cpp src/conv_optimized.cpp src/perf_harness.cpp -o bin/perf_harness 
+stage=tile H=1024 W=1024 K=3 seed=1234 iters=10  time(median)=102.173ms  GFLOP/s=0.18
+--- per-run average over 10 iterations (stage=tile) ---
+                             <not supported>
+                             <not supported>
+task-clock                   total=275.21           avg/run=27.52
+context-switches             total=12               avg/run=1.20
+cpu-migrations               total=0                avg/run=0.00
+page-faults                  total=3209             avg/run=320.90
+cycles                       total=301033042        avg/run=30103304.20
+ref-cycles                   total=674223319        avg/run=67422331.90
+instructions                 total=1142965267       avg/run=114296526.70
+stalled-cycles-frontend      <not supported>
+stalled-cycles-backend       <not supported>
+branches                     total=164738091        avg/run=16473809.10
+branch-misses                total=172834           avg/run=17283.40
+cache-references             total=7287293          avg/run=728729.30
+cache-misses                 total=3004013          avg/run=300401.30
+L1-dcache-loads              total=205606452        avg/run=20560645.20
+L1-dcache-load-misses        total=1772631          avg/run=177263.10
+L1-dcache-stores             total=16618086         avg/run=1661808.60
+L1-dcache-store-misses       <not supported>
+L1-icache-load-misses        total=474902           avg/run=47490.20
+LLC-loads                    total=187773           avg/run=18777.30
+LLC-load-misses              total=50061            avg/run=5006.10
+LLC-stores                   total=639365           avg/run=63936.50
+LLC-store-misses             total=279654           avg/run=27965.40
+dTLB-loads                   total=186935128        avg/run=18693512.80
+dTLB-load-misses             total=19163            avg/run=1916.30
+dTLB-stores                  total=17420445         avg/run=1742044.50
+dTLB-store-misses            total=23372            avg/run=2337.20
+iTLB-loads                   total=239              avg/run=23.90
+iTLB-load-misses             total=1298             avg/run=129.80
+
+--- derived metrics ---
+IPC (instr/cycle)            3.797
+L1D-load MPKI                1.5509
+L1I-load MPKI                0.4155
+LLC-load MPKI                0.0438
+LLC-store MPKI               0.2447
+dTLB-load MPKI               0.0168
+dTLB-store MPKI              0.0204
+iTLB-load MPKI               0.0011
+L1D-load miss rate           0.8621%
+LLC-load miss rate           26.6604%

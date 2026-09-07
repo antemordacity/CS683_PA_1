@@ -1,0 +1,28 @@
+#!/bin/bash
+
+mkdir -p perf_results
+
+# Build profiling harness
+make bin/perf_harness || exit 1
+
+make perf-stat STAGE=naive PH=1024 PW=1024 PK=3 ITERS=10 > perf_results/naive_1024x1024_k3.txt 2>&1
+make perf-stat STAGE=naive PH=1024 PW=1024 PK=5 ITERS=10 > perf_results/naive_1024x1024_k5.txt 2>&1
+make perf-stat STAGE=naive PH=2048 PW=2048 PK=3 ITERS=10 > perf_results/naive_2048x2048_k3.txt 2>&1
+make perf-stat STAGE=naive PH=2048 PW=2048 PK=5 ITERS=10 > perf_results/naive_2048x2048_k5.txt 2>&1
+
+# =========================
+# tile
+# =========================
+make perf-stat STAGE=tile PH=1024 PW=1024 PK=3 ITERS=10 > perf_results/tile_1024x1024_k3.txt 2>&1
+make perf-stat STAGE=tile PH=1024 PW=1024 PK=5 ITERS=10 > perf_results/tile_1024x1024_k5.txt 2>&1
+make perf-stat STAGE=tile PH=2048 PW=2048 PK=3 ITERS=10 > perf_results/tile_2048x2048_k3.txt 2>&1
+make perf-stat STAGE=tile PH=2048 PW=2048 PK=5 ITERS=10 > perf_results/tile_2048x2048_k5.txt 2>&1
+
+# =========================
+# simd_tiled
+# =========================
+make perf-stat STAGE=simd_tiled PH=1024 PW=1024 PK=3 ITERS=10 > perf_results/simd_tiled_1024x1024_k3.txt 2>&1
+make perf-stat STAGE=simd_tiled PH=1024 PW=1024 PK=5 ITERS=10 > perf_results/simd_tiled_1024x1024_k5.txt 2>&1
+make perf-stat STAGE=simd_tiled PH=2048 PW=2048 PK=3 ITERS=10 > perf_results/simd_tiled_2048x2048_k3.txt 2>&1
+make perf-stat STAGE=simd_tiled PH=2048 PW=2048 PK=5 ITERS=10 > perf_results/simd_tiled_2048x2048_k5.txt 2>&1
+
