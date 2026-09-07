@@ -5,8 +5,8 @@ void conv_tile(const float* in, float* out, const float* ker,
     const int p = K / 2;
     const int in_stride = W + 2 * p;
 
-    constexpr int TILE_H = 64;
-    constexpr int TILE_W = 64;
+    constexpr int TILE_H = 128;
+    constexpr int TILE_W = 128;
 
     for (int oy0 = 0; oy0 < H; oy0 += TILE_H) {
         for (int ox0 = 0; ox0 < W; ox0 += TILE_W) {
